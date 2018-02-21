@@ -1,132 +1,88 @@
-clear all;
+%Genetic algorithm with tournament selection, crossover, mutation, elitism
 
-populationSize = 30;
-numberOfGenes = 40;
-crossoverProbability = 0.8;
-mutationProbability = 0.025;
+clear all
+
+%initialization
+populationSize = 100;
+numberOfGenes = 50;
+crossoverProbability = 0.9;
+mutationProbability = 0.035;
 tournamentSelectionParameter = 0.75;
-variableRange=3.0;
-numberOfGenerations = 100;
+tournamentSize=2;
+variableRange=5.0;
+numberOfGenerations = 200;
 fitness = zeros(populationSize,1);
-numberOfVariables = 3;
+numberOfVariables = 2;
+nCopies = 1;
+numberOfRuns = 20;
 
- nCopies=3;
 
-fitnessFigureHandle = figure;
-hold on;
-set (fitnessFigureHandle, 'Position', [50,50,500,200]);
-set (fitnessFigureHandle, 'DoubleBuffer', 'on');
-axis ([1 numberOfGenerations 2.5 3]);
-bestPlotHandle = plot (1:numberOfGenerations,zeros(1,numberOfGenerations));
-textHandle = text(30,2.6,sprintf('best: %4.3f',0.0));
-hold off;
-drawnow;
+for iRuns = 1:numberOfRuns
+    
+    population = InitializePopulation(populationSize, numberOfGenes);
+    
+    for iGeneration = 1:numberOfGenerations
+        
+        maximumFitness = 0.0;
+        xBest = zeros (1,2);
+        bestIndividualIndex = 0;
+        
+        %finding the individual with the highest fitness
+        for i = 1:populationSize
+            chromosome = population(i,:);
+            x = DecodeChromosome(chromosome, numberOfVariables, variableRange);
+            decodedPopulation(i,:)=x;
+            fitness(i) = EvaluateIndividual(x);
+            if (fitness(i) > maximumFitness)
+                maximumFitness =fitness(i);
+                bestIndividualIndex=i;
+                xBest=x;
+            end
+        end
+             
+        tempPopulation = population;
+        
+        %tournament selection
+        for i=1:2:populationSize
+            i1 = TournamentSelect(fitness,tournamentSelectionParameter,tournamentSize);
+            i2 = TournamentSelect(fitness,tournamentSelectionParameter,tournamentSize);
+            chromosome1 = population(i1,:);
+            chromosome2 = population(i2,:);
+       
+            %crossover
+            r=rand;
+            if (r<crossoverProbability)
+                newChromosomePair = Cross (chromosome1,chromosome2);
+                tempPopulation(i,:) = newChromosomePair(1,:);
+                tempPopulation(i+1,:) = newChromosomePair(2,:);
+            else
+                tempPopulation(i,:) = chromosome1;
+                tempPopulation(i+1,:) = chromosome2;
+            end
+        end % Loop over population
+        
+        %mutation
+        for i = 1:populationSize
+            originalChromosome = tempPopulation(i,:);
+            mutatedChromosome = Mutate(originalChromosome,mutationProbability);
+            tempPopulation(i,:)=mutatedChromosome;
+        end
 
-surfaceFigureHandle = figure;
-hold on;
-set (surfaceFigureHandle, 'DoubleBuffer','on');
-delta=0.1;
-limit = fix(2*variableRange/delta) + 1;
-[xValues,yValues] = meshgrid(-variableRange:delta:variableRange,...
-    -variableRange:delta:variableRange);
-zValues = zeros(limit,limit);
-for j = 1:limit
-    for k= 1:limit
-        zValues(j,k)=EvaluateIndividual([xValues(j,k) yValues(j,k)]);
-    end
+        %elitism
+        population = InsertBestIndividual (population, bestIndividualIndex, nCopies);
+        
+        for j=1:nCopies
+            tempPopulation(j,:) = population(j,:);
+        end
+        population = tempPopulation;
+        
+        
+        avgxBest(iGeneration,:) = xBest;
+        avgminVal(iGeneration) = 1/maximumFitness;  
+    end %Loop over generations 
+    
 end
-surfl(xValues,yValues,zValues)
-colormap gray;
-shading interp;
-view ([-7 -9 10]);
-decodedPopulation = zeros(populationSize,2);
-populationPlotHandle = plot3(decodedPopulation(:,1),...
-    decodedPopulation(:,2),fitness(:),'kp');
-hold off;
-drawnow;
 
-population = InitializePopulation(populationSize, numberOfGenes);
-
-for iGeneration = 1:numberOfGenerations
-    
-    maximumFitness = 0.0; % Assumes non-negative fitness values!
-    xBest = zeros (1,2); % [0 0]
-    bestIndividualIndex = 0;
-
-
-    for i = 1:populationSize
-    chromosome = population(i,:);
-    x = DecodeChromosome(chromosome, variableRange);
-    decodedPopulation(i,:)=x; 
-    fitness(i) = EvaluateIndividual(x);
-        if (fitness(i) > maximumFitness)
-            maximumFitness =fitness(i);
-            bestIndividualIndex=i;
-            xBest=x;
-        end
-    end
-    
-    %Printout
-    disp('xBest');
-    disp(xBest);
-    disp('maximumFitness');
-    disp(maximumFitness);
-    
-
-    tempPopulation = population;
-
-    for i=1:2:populationSize
-        i1 = TournamentSelect(fitness,tournamentSelectionParameter);
-        i2 = TournamentSelect(fitness,tournamentSelectionParameter);
-        chromosome1 = population(i1,:);
-        chromosome2 = population(i2,:);
-    
-        r=rand;
-        if (r<crossoverProbability)
-            newChromosomePair = Cross (chromosome1,chromosome2);
-            tempPopulation(i,:) = newChromosomePair(1,:);
-            tempPopulation(i+1,:) = newChromosomePair(2,:);
-        else
-            tempPopulation(i,:) = chromosome1;
-            tempPopulation(i+1,:) = chromosome2;
-        end
-    end % Loop over population
-
-    for i = 1:populationSize
-        originalChromosome = tempPopulation(i,:);
-        mutatedChromosome = Mutate(originalChromosome,mutationProbability);
-        tempPopulation(i,:)=mutatedChromosome;
-    end
-
-    %tempPopulation(1,:) = population(bestIndividualIndex,:);
-    %tempPopulation(2,:) = population(bestIndividualIndex,:);
-    %tempPopulation(3,:) = population(bestIndividualIndex,:);
-    
-    population = InsertBestIndividual (population, bestIndividualIndex, nCopies);
-    
-    for j=1:nCopies
-        tempPopulation(j,:) = population(j,:);
-    end
-    population = tempPopulation;
-
-    plotvector = get(bestPlotHandle,'YData');
-    plotvector(iGeneration)=maximumFitness;
-    set(bestPlotHandle,'YData',plotvector);
-    set(textHandle,'String',sprintf('best: %4.3f',maximumFitness));
-    %The following statement is new
-    set(populationPlotHandle,'XData',decodedPopulation(:,1),'YData',...
-        decodedPopulation(:,2),'ZData',fitness(:));
-    drawnow;
-    
-    
-end %Loop over generations
-
-%Print final result
-disp('xBest');
-disp(xBest);
-disp('maximumFitness');
-disp(maximumFitness);
-
-
-
+averagexBest = mean (avgxBest);
+averageMinimumValue = mean (avgminVal);
 

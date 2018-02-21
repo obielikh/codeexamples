@@ -3,9 +3,9 @@ function [ updatedPopulation ] =  InsertBestIndividual (population, ...
 
 updatedPopulation = population;
 
-for i = 1:nCopies
+for j = 1:nCopies
     
-    updatedPopulation(i,:) = population(bestIndividualIndex,:);
+    updatedPopulation(j,:) = updatedPopulation(bestIndividualIndex,:);
 
 end
 end

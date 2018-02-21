@@ -1,23 +1,32 @@
-function iSelected = TournamentSelect(fitness,tournamentSelectionParameter)
+function iSelected = TournamentSelect(fitness,tournamentSelectionParameter,...
+    tournamentSize)
 
-    populationSize = size(fitness,1);
-    iTmp1 = 1 + fix(rand*populationSize);
-    iTmp2 = 1 + fix(rand*populationSize);
+%tournamentSelectionParameter=0.75;
+%tournamentSize=3;
+populationSize = size(fitness,1);
     
-    r=rand;
+    for i = 1:tournamentSize
+        iTmp(i) = 1 + fix(rand*populationSize);
+    end
     
-    if (r<tournamentSelectionParameter)
-        if (fitness(iTmp1) > fitness (iTmp2))
-            iSelected = iTmp1;
+   
+    iSelected=0;
+    
+    while length(iTmp)>1
+        r = rand;
+        if (r < tournamentSelectionParameter)
+            iSelected = max(iTmp);
+            break;
         else
-            iSelected = iTmp2;
-        end
-    else
-        if (fitness(iTmp1) > fitness (iTmp2))
-            iSelected = iTmp2;
-        else
-            iSelected = iTmp1;
+            [m,maxPos] = max (iTmp);
+            iTmp(maxPos) = [];
+            
         end
     end
     
+    if length (iTmp)==1
+        iSelected = iTmp(1);
+    end
+ 
 end
+
